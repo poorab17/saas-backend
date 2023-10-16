@@ -1,0 +1,14 @@
+// backend/models/Module.js
+
+const mongoose = require('mongoose');
+
+const moduleSchema = new mongoose.Schema({
+    name: {
+        type: String,
+        required: true,
+        unique: true,
+    },
+    description: String,
+});
+
+module.exports = mongoose.model('Module', moduleSchema);

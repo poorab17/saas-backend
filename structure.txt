@@ -1,0 +1,36 @@
+my-multitenancy-app/
+  ├── backend/
+  │   ├── config/
+  │   │   ├── db.js         // Database configuration
+  │   │   └── ...           // Other configuration files
+  │   ├── controllers/
+  │   │   ├── auth.js       // User authentication controller
+  │   │   ├── roles.js      // Roles controller
+  │   │   ├── users.js      // Users controller
+  │   │   └── ...           // Other controllers
+  │   ├── models/
+  │   │   ├── Tenant.js     // Tenant model
+  │   │   ├── Role.js       // Role model
+  │   │   ├── User.js       // User model
+  │   │   └── ...           // Other models
+  │   ├── routes/
+  │   │   ├── auth.js       // Authentication routes
+  │   │   ├── roles.js      // Routes for managing roles
+  │   │   ├── users.js      // Routes for managing users
+  │   │   └── ...           // Other route files
+  │   └── app.js            // Express.js app setup
+  ├── frontend/
+  │   ├── public/
+  │   │   ├── index.html    // HTML template
+  │   │   ├── ...
+  │   ├── src/
+  │   │   ├── components/
+  │   │   │   ├── Auth/     // Authentication components
+  │   │   │   ├── Dashboard/ // Dashboard components
+  │   │   │   ├── Roles/     // Role and permission management components
+  │   │   │   └── ...       // Other components
+  │   │   ├── App.js        // Main application component
+  │   │   ├── index.js      // Entry point for React
+  │   │   └── ...
+  ├── package.json          // Node.js project configuration
+  └── ...
