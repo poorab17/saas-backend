@@ -1,60 +1,139 @@
+// backend/controllers/auth.js
+
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
 const { jwtSecret } = require('../config/auth');
-
 const User = require('../models/User');
-const Tenant = require('../models/Tenant');
+const Tenant = require("../models/Tenant")
+const CustomerTenant = require("../models/Customer")
+const mongoose = require("mongoose");
+let databasename;
 
-function checkRole(allowedRoles) {
-    return async (req, res, next) => {
-        // Check if a JWT token is present in the request headers
-        // const token = req.headers.authorization;
-        const token = req.cookies.jwtToken;
+// User login
+exports.login = async (req, res) => {
+    const { username, password } = req.body;
 
-        if (!token) {
-            // If there's no token, send a message to log in as 'superadmin'
-            return res.status(401).json({ message: 'Superadmin login required.' });
+
+    try {
+        let isSuperadmin = false;
+        let isTenant = false;
+        let isCustomer = false;
+
+
+        //for superadmin
+        const user = await User.findOne({ username });
+        if (user) {
+            const passwordMatch = await bcrypt.compare(password, user.password);
+            if (passwordMatch) {
+                isSuperadmin = user.role === 'superadmin';
+            }
+        }
+        //for tenant
+        const tenant = await Tenant.findOne({ username });
+        console.log(tenant)
+
+        if (tenant) {
+            const passwordMatch = await bcrypt.compare(password, tenant.password);
+            if (passwordMatch) {
+                isTenant = tenant.role === 'tenant';
+            }
         }
 
-        try {
-            // Verify the JWT token
-            const decoded = jwt.verify(token, jwtSecret);
 
-            if (!decoded || !decoded.userId) {
-                return res.status(401).json({ message: 'Invalid token.' });
-            }
-            if (decoded.isSuperadmin) {
-                // Superadmin has immediate access
-                return next();
-            }
+        const customerTenantConnection = mongoose.createConnection(`mongodb://127.0.0.1:27017/customerTenantDB`, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+        });
 
-            // Check if the user's role is in the allowedRoles array
-            const userId = decoded.userId;
-            let user;
-            if (allowedRoles.includes('tenant')) {
-                user = await Tenant.findById(userId); // Fetch tenant data
+        customerTenantConnection.on('connected', async () => {
+            console.log('Connected to CustomerTenant database');
+
+            const customerTenantCollection = customerTenantConnection.collection('customerTenant');
+
+            // Use a query object to match documents based on the 'username' field
+            const query = { username };
+
+            const databasenameEntry = await customerTenantCollection.findOne(query);
+            databasename = databasenameEntry.databaseName;
+            console.log(databasename);
+
+            if (databasenameEntry) {
+                databasename = databasenameEntry.databaseName;
+                console.log('Found databasename:', databasename);
             } else {
-                user = await User.findById(userId); // Fetch user data
+                console.log('Data not found for the provided username.');
             }
-            // const user = await User.findById(userId);
+        });
 
-            if (!user) {
-                return res.status(401).json({ message: 'User not found.' });
+
+        console.log(databasename);
+        const conn = mongoose.createConnection(`mongodb://127.0.0.1:27017/${databasename}`, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+        });
+        const Customer = conn.model('Customer', new mongoose.Schema({
+            // Define your Customer schema here
+            username: {
+                type: String,
+                required: true,
+                unique: true,
+            },
+            password: {
+                type: String,
+                required: true,
+            },
+
+            role: {
+                type: String,
+                enum: ["superadmin", "tenant", "customer"],
+                default: "customer",
+            },
+        }));
+        const customer = await Customer.findOne({ username });
+
+        console.log(customer);
+        if (customer) {
+            const passwordMatch = await bcrypt.compare(password, customer.password);
+            if (passwordMatch) {
+                isCustomer = customer.role === 'customer';
             }
-
-            const userRole = user.role;
-
-            if (allowedRoles.includes(userRole)) {
-                // User has the required role, allow access to the route
-                next();
-            } else {
-                // User doesn't have the required role, send a forbidden response
-                res.status(403).json({ message: 'Access forbidden.Role must be superadmin' });
-            }
-        } catch (error) {
-            console.error('Error checking role:', error);
-            res.status(500).json({ message: 'Login is must' });
         }
-    };
-}
 
-module.exports = checkRole;
+        if (!isSuperadmin && !isTenant && !isCustomer) {
+            return res.status(401).json({ message: 'Authentication failed. SuperAdmin ,Tenant or customer not found.' });
+        }
+
+        //const id = user ? user._id : tenant._id;
+        const id = user ? user._id : (tenant ? tenant._id : (customer ? customer._id : null));
+        // Define the basic payload with common properties
+        const payload = { userId: id, username, isSuperadmin, isTenant, isCustomer };
+        // If the user is a tenant, add the 'name' property to the payload
+        if (tenant) {
+            payload.name = tenant.name;
+        }
+
+
+        const token = jwt.sign(
+            payload,
+            jwtSecret,
+            { expiresIn: '1h' } // Token expires in 1 hour
+        );
+
+        res.cookie('jwtToken', token, { httpOnly: true });
+
+        res.status(200).json(payload);
+
+    } catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json({ message: 'Internal server error.' });
+    }
+};
+
+
+exports.logout = (req, res) => {
+    // Clear the JWT token by setting an empty token and expiring it immediately
+    res.cookie('jwtToken', '', { expires: new Date(0) });
+    res.status(200).json({ message: 'Logout successful.' });
+};
+
+// Add more authentication-related controllers as needed.
