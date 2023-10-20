@@ -32,9 +32,6 @@ exports.login = async (req, res) => {
 
         // For tenant
         const tenant = await Tenant.findOne({ username });
-
-
-
         if (tenant) {
             const passwordMatch = await bcrypt.compare(password, tenant.password);
             if (passwordMatch) {
@@ -127,7 +124,8 @@ exports.login = async (req, res) => {
 
             res.cookie('jwtToken', token, { httpOnly: true });
 
-            res.status(200).json(payload);
+
+            res.status(200).json({ payload, token });
         });
     } catch (error) {
         console.error('Login error:', error);
@@ -143,4 +141,43 @@ exports.logout = (req, res) => {
 };
 
 // Add more authentication-related controllers as needed.
+exports.refreshToken = (req, res) => {
+    const token = req.cookies.jwtToken; // Assuming the JWT token is stored in a cookie
+    if (!token) {
+        return res.status(401).json({ message: 'Token not provided' });
+    }
 
+    try {
+        const decoded = jwt.verify(token, jwtSecret);
+        const newToken = jwt.sign(
+            {
+                userId: decoded.userId,
+                username: decoded.username,
+                isSuperadmin: decoded.isSuperadmin,
+                isTenant: decoded.isTenant,
+                isCustomer: decoded.isCustomer,
+            },
+            jwtSecret,
+            { expiresIn: '1h' }
+        );
+
+        res.cookie('jwtToken', newToken, { httpOnly: true });
+        res.status(200).json({ token: newToken });
+    } catch (error) {
+        res.status(401).json({ message: 'Token is not valid' });
+    }
+};
+
+exports.verifyToken = (req, res) => {
+    const token = req.cookies.jwtToken; // Assuming the JWT token is stored in a cookie
+    if (!token) {
+        return res.status(401).json({ message: 'Token not provided' });
+    }
+
+    try {
+        const decoded = jwt.verify(token, jwtSecret);
+        res.status(200).json({ token });
+    } catch (error) {
+        res.status(401).json({ message: 'Token is not valid' });
+    }
+};

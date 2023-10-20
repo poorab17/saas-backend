@@ -1,34 +1,58 @@
 // backend/controllers/modules.js
 
 const Module = require('../models/Module');
-
 const express = require("express");
 const router = express.Router();
-
+const multer = require('multer');
+const path = require('path');
 // Create a new module and its dynamic route
 exports.createModule = async (req, res) => {
     try {
-        const { name, description } = req.body;
-        const module = new Module({ name, description });
-        await module.save();
 
-        // Dynamically create a new route based on the module name
-        const moduleRouter = express.Router();
-        moduleRouter.get('/', async (req, res) => {
-            try {
-                const moduleName = req.params.moduleName; // Access the module name from the URL
-                const moduleData = await Module.findOne({ name: moduleName });
-                res.json(moduleData);
-            } catch (error) {
-                console.error('Error fetching module data:', error);
-                res.status(500).json({ message: 'Internal server error.' });
+        const storage = multer.diskStorage({
+            destination: function (req, file, cb) {
+                cb(null, path.join(__dirname, '../../frontend/public/images/'))
+                console.log(__dirname, "dore")  //E:\userrole\multi-saas\frontend\public
+            },
+            filename: function (req, file, cb) {
+                cb(null, Date.now() + file.originalname); // Define the filename
             }
         });
 
-        // Mount the dynamic route under a common base path
-        router.use('/:moduleName', moduleRouter);
+        const upload = multer({ storage: storage });
 
-        res.status(201).json(module);
+        upload.single('file')(req, res, async (err) => {
+            if (err) {
+                console.error('Error uploading file:', err);
+                return res.status(500).json({ message: 'Error uploading file.' });
+            }
+
+            const { name, description } = req.body;
+            const module = new Module({ name, description });
+            module.file = {
+                filename: req.file.filename, // Add the filename to your module schema
+                path: req.file.path, // Add the file path to your module schema
+            };
+            await module.save();
+
+            // Dynamically create a new route based on the module name
+            const moduleRouter = express.Router();
+            moduleRouter.get('/', async (req, res) => {
+                try {
+                    const moduleName = req.params.moduleName; // Access the module name from the URL
+                    const moduleData = await Module.findOne({ name: moduleName });
+                    res.json(moduleData);
+                } catch (error) {
+                    console.error('Error fetching module data:', error);
+                    res.status(500).json({ message: 'Internal server error.' });
+                }
+            });
+
+            // Mount the dynamic route under a common base path
+            router.use('/:moduleName', moduleRouter);
+
+            res.status(201).json(module);
+        });
     } catch (error) {
         console.error('Error creating module:', error);
         res.status(500).json({ message: 'Internal server error.' });
@@ -55,6 +79,20 @@ exports.getModuleByName = async (req, res) => {
     } catch (error) {
         console.error('Error fetching module data:', error);
         res.status(500).json({ message: 'Internal server error.' });
+    }
+};
+
+exports.delete = async (req, res) => {
+    try {
+        // Find the module by its ID
+        const module = await Module.findByIdAndRemove(req.params.moduleId);
+        if (!module) {
+            return res.status(404).json({ message: 'Module not found' });
+        }
+        res.json({ message: 'Module deleted' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Internal Server Error' });
     }
 };
 

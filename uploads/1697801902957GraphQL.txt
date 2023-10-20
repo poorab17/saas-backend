@@ -1,0 +1,5 @@
+What is graphQL?
+ GraphQl is an open-source data query and manipulation language for Apis and runtime 
+for fullfilling quries with existing data.
+It is an alterantive to a REST api,with some added benefits such as the ability to
+ request the exact data that you want.

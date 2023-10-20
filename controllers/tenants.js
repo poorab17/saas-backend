@@ -12,7 +12,8 @@ const bcrypt = require('bcrypt');
 // Create a new tenant
 exports.createTenant = async (req, res) => {
     try {
-        const { name, username, role, description, dbUri, permissions, password } = req.body;
+        const { name, username, role, description, databaseName, permissions, password } = req.body;
+        const dbUri = `mongodb://127.0.0.1:27017/${databaseName}`;
 
         // Hash the password using bcrypt
         const hashedPassword = await bcrypt.hash(password, 10);
@@ -58,6 +59,32 @@ exports.createTenant = async (req, res) => {
 };
 
 
+exports.deleteTenant = async (req, res) => {
+    try {
+        const tenantId = req.params.tenantId;
+        // Use the module's ID to find and delete it from the database
+        const deletedTenant = await Tenant.findByIdAndRemove(tenantId);
+        console.log(deletedTenant);
+        if (!deletedTenant) {
+            return res.status(404).json({ message: 'Tenant not found' });
+        }
+        return res.status(200).json({ message: 'Tenant deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting tenant:', error);
+        res.status(500).json({ message: 'Internal server error.' });
+    }
+};
+
+
+
+
+
+
+
+
+
+
+
 //for superadmin
 exports.getAllTenants = async (req, res) => {
     try {
@@ -68,36 +95,6 @@ exports.getAllTenants = async (req, res) => {
         res.status(500).json({ message: 'Internal server error.' });
     }
 };
-
-//for tenants
-// exports.getTenantData = async (req, res) => {
-//     try {
-//         // Obtain the username from the JWT token
-//         const token = req.cookies.jwtToken; // Assuming the JWT token is stored in a cookie
-
-//         if (!token) {
-//             return res.status(401).json({ message: 'JWT token is missing.' });
-//         }
-
-//         const decoded = jwt.verify(token, jwtSecret);
-//         console.log(decoded);
-//         const username = decoded.username;
-//         console.log(username)
-
-//     // Fetch the tenant data based on the username
-//         const tenant = await Tenant.findOne({ username });
-//         // console.log(tenant);
-
-//         if (!tenant) {
-//             return res.status(404).json({ message: 'Tenant not found.' });
-//         }
-//         // Return the tenant data
-//         res.status(200).json(tenant);
-//     } catch (error) {
-//         console.error('Error fetching tenant data:', error);
-//         res.status(500).json({ message: 'Internal server error.' });
-//     }
-// };
 
 exports.getTenantData = async (req, res) => {
     try {

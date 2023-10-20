@@ -7,17 +7,28 @@ my-multitenancy-app/
   │   │   ├── auth.js       // User authentication controller
   │   │   ├── roles.js      // Roles controller
   │   │   ├── users.js      // Users controller
+  │   │   ├── customer.js   // Customer controller
+  │   │   ├── tenant.js     // Tenant controller
+  │   │   ├── module.js     // Module controller
+  │   │   ├── permission.js // Permission controller
   │   │   └── ...           // Other controllers
   │   ├── models/
   │   │   ├── Tenant.js     // Tenant model
   │   │   ├── Role.js       // Role model
   │   │   ├── User.js       // User model
-  │   │   └── ...           // Other models
+  │   │   ├── Customer.js   // Customer model
+  │   │   ├── Module.js     // Module model
+  │   │   ├── Permission.js // Permission model
+  │   │   └── ...
   │   ├── routes/
   │   │   ├── auth.js       // Authentication routes
   │   │   ├── roles.js      // Routes for managing roles
   │   │   ├── users.js      // Routes for managing users
-  │   │   └── ...           // Other route files
+  │   │   ├── customer.js   // Customer routes
+  │   │   ├── tenant.js     // Tenant routes
+  │   │   ├── module.js     // Module routes
+  │   │   ├── permission.js // Permission routes
+  │   │   └── ...
   │   └── app.js            // Express.js app setup
   ├── frontend/
   │   ├── public/

@@ -10,6 +10,9 @@ const checkRole = require('../middleware/checkRole');
 // Create a new tenant
 router.post('/create', checkRole(['superadmin']), tenantsController.createTenant);
 
+//delete
+router.delete('/delete/:tenantId', checkRole(['superadmin']), tenantsController.deleteTenant);
+
 // Get all tenants for superadmin
 router.get('/', checkRole(['superadmin']), tenantsController.getAllTenants);
 

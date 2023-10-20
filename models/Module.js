@@ -2,6 +2,13 @@
 
 const mongoose = require('mongoose');
 
+
+const fileSchema = new mongoose.Schema({
+    filename: String,
+    path: String,
+    // You can add more fields for file metadata if needed
+});
+
 const moduleSchema = new mongoose.Schema({
     name: {
         type: String,
@@ -9,6 +16,7 @@ const moduleSchema = new mongoose.Schema({
         unique: true,
     },
     description: String,
+    file: fileSchema,
 });
 
 module.exports = mongoose.model('Module', moduleSchema);

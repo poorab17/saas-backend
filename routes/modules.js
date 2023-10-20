@@ -10,8 +10,11 @@ const checkRole = require('../middleware/checkRole'); // Assuming you have a rol
 // Create a new module (only accessible to superadmins)
 router.post('/create', checkRole(['superadmin']), modulesController.createModule);
 
-// Get all modules (accessible to users with specific roles, adjust roles as needed)
-router.get('/', checkRole(['superadmin']), modulesController.getAllModules);
+//delete
+router.delete('/delete/:moduleId', checkRole(['superadmin']), modulesController.delete);
+
+// Get all modules
+router.get('/', modulesController.getAllModules);
 
 // Add more routes for updating, deleting, and other module-related operations as needed.
 router.get('/:moduleName', checkRole(['superadmin']), modulesController.getModuleByName);

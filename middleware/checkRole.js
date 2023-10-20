@@ -15,9 +15,17 @@ const Customer = require("../helper/dbHelper");
 const checkRole = (roles) => {
     return async (req, res, next) => {
         try {
-            const token = req.cookies.jwtToken;
+            // const token = req.cookies.jwtToken;
+            // console.log(token, "token")
 
+            const authorizationHeader = req.headers.authorization;
+            if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
+                return res.status(401).json({ message: 'Authentication failed. Token not found.' });
+            }
+            const token = authorizationHeader.replace('Bearer ', '');
+            // const decoded = jwt.verify(token, jwtSecret);
             if (!token) {
+                console.log("tke not available not")
                 return res.status(401).json({ message: 'Authentication failed. Token not found.' });
             }
 

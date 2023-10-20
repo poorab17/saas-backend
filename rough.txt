@@ -1,139 +1,111 @@
-// backend/controllers/auth.js
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import LandingPage from './components/LandingPage';
+import ModuleDetails from './components/ModuleDetails';
+import Login from './components/Login';
+import SuperAdmin from './dashboard/SuperAdmin';
+import Tenant from './dashboard/Tenant';
+import ModulesPage from './pages/ModulesPage';
+import Customer from './dashboard/Customer';
+import { useNavigate } from 'react-router-dom';
+import CreateModuleForm from './pages/CreateModuleForm';
 
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
-const { jwtSecret } = require('../config/auth');
-const User = require('../models/User');
-const Tenant = require("../models/Tenant")
-const CustomerTenant = require("../models/Customer")
-const mongoose = require("mongoose");
-let databasename;
+function App() {
+  const navigate = useNavigate();
+  const [user, setUser] = useState({
+    isAuthenticated: false,
+    role: null,
+  });
 
-// User login
-exports.login = async (req, res) => {
-    const { username, password } = req.body;
+  const location = useLocation();
 
+  useEffect(() => {
+    const storedRoute = localStorage.getItem('lastRoute');
 
-    try {
-        let isSuperadmin = false;
-        let isTenant = false;
-        let isCustomer = false;
-
-
-        //for superadmin
-        const user = await User.findOne({ username });
-        if (user) {
-            const passwordMatch = await bcrypt.compare(password, user.password);
-            if (passwordMatch) {
-                isSuperadmin = user.role === 'superadmin';
-            }
-        }
-        //for tenant
-        const tenant = await Tenant.findOne({ username });
-        console.log(tenant)
-
-        if (tenant) {
-            const passwordMatch = await bcrypt.compare(password, tenant.password);
-            if (passwordMatch) {
-                isTenant = tenant.role === 'tenant';
-            }
-        }
-
-
-        const customerTenantConnection = mongoose.createConnection(`mongodb://127.0.0.1:27017/customerTenantDB`, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-        });
-
-        customerTenantConnection.on('connected', async () => {
-            console.log('Connected to CustomerTenant database');
-
-            const customerTenantCollection = customerTenantConnection.collection('customerTenant');
-
-            // Use a query object to match documents based on the 'username' field
-            const query = { username };
-
-            const databasenameEntry = await customerTenantCollection.findOne(query);
-            databasename = databasenameEntry.databaseName;
-            console.log(databasename);
-
-            if (databasenameEntry) {
-                databasename = databasenameEntry.databaseName;
-                console.log('Found databasename:', databasename);
-            } else {
-                console.log('Data not found for the provided username.');
-            }
-        });
-
-
-        console.log(databasename);
-        const conn = mongoose.createConnection(`mongodb://127.0.0.1:27017/${databasename}`, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-        });
-        const Customer = conn.model('Customer', new mongoose.Schema({
-            // Define your Customer schema here
-            username: {
-                type: String,
-                required: true,
-                unique: true,
-            },
-            password: {
-                type: String,
-                required: true,
-            },
-
-            role: {
-                type: String,
-                enum: ["superadmin", "tenant", "customer"],
-                default: "customer",
-            },
-        }));
-        const customer = await Customer.findOne({ username });
-
-        console.log(customer);
-        if (customer) {
-            const passwordMatch = await bcrypt.compare(password, customer.password);
-            if (passwordMatch) {
-                isCustomer = customer.role === 'customer';
-            }
-        }
-
-        if (!isSuperadmin && !isTenant && !isCustomer) {
-            return res.status(401).json({ message: 'Authentication failed. SuperAdmin ,Tenant or customer not found.' });
-        }
-
-        //const id = user ? user._id : tenant._id;
-        const id = user ? user._id : (tenant ? tenant._id : (customer ? customer._id : null));
-        // Define the basic payload with common properties
-        const payload = { userId: id, username, isSuperadmin, isTenant, isCustomer };
-        // If the user is a tenant, add the 'name' property to the payload
-        if (tenant) {
-            payload.name = tenant.name;
-        }
-
-
-        const token = jwt.sign(
-            payload,
-            jwtSecret,
-            { expiresIn: '1h' } // Token expires in 1 hour
-        );
-
-        res.cookie('jwtToken', token, { httpOnly: true });
-
-        res.status(200).json(payload);
-
-    } catch (error) {
-        console.error('Login error:', error);
-        res.status(500).json({ message: 'Internal server error.' });
+    if (!user.isAuthenticated) {
+      if (storedRoute) {
+        // If the user is not authenticated and there's a stored route, navigate to it.
+        navigate(storedRoute);
+      }
+    } else if (!location.pathname.startsWith('/login')) {
+      // If the user is authenticated and not on the login page, store the current route.
+      localStorage.setItem('lastRoute', location.pathname);
     }
-};
+  }, [user.isAuthenticated, location.pathname]);
 
 
-exports.logout = (req, res) => {
-    // Clear the JWT token by setting an empty token and expiring it immediately
-    res.cookie('jwtToken', '', { expires: new Date(0) });
-    res.status(200).json({ message: 'Logout successful.' });
-};
+  const handleSuccessfulLogin = (role) => {
+    if (role) {
+      setUser({
+        isAuthenticated: true,
+        role: role,
+      });
 
-// Add more authentication-related controllers as needed.
+      // Store the user's role in local storage
+      localStorage.setItem('userRole', role);
+      // Store the last route upon successful login
+      if (!location.pathname.startsWith('/login')) {
+        localStorage.setItem('lastRoute', location.pathname);
+      }
+    }
+  }
+
+  return (
+
+    <Routes>
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/login" element={<Login onSuccessfulLogin={handleSuccessfulLogin} />} />
+      <Route path="/module/:moduleId" element={<ModuleDetails />} />
+      <Route
+        path="/superadmin"
+        element={
+          user.isAuthenticated && user.role === 'superadmin' ? (
+            <SuperAdmin />
+          ) : (
+            <Navigate to="/login" />
+          )
+        }
+      />
+      <Route
+        path="/tenant"
+        element={
+          user.isAuthenticated && user.role === 'tenant' ? (
+            <Tenant />
+          ) : (
+            <Navigate to="/login" />
+          )
+        }
+      />
+      <Route
+        path="/customer"
+        element={
+          user.isAuthenticated && user.role === 'customer' ? (
+            <Customer />
+          ) : (
+            <Navigate to="/login" />
+          )
+        }
+      />
+      <Route path="/superadmin/modules" element={<ModulesPage></ModulesPage>}></Route>
+      {/* <Route path="/superadmin/modules/create" element={<CreateModuleForm></CreateModuleForm>
+      }></Route> */}
+
+
+      <Route
+        path="/superadmin/modules/create" // New route for module creation page
+        element={
+          user.isAuthenticated && user.role === 'superadmin' ? (
+            <CreateModuleForm />
+          ) : (
+            <Navigate to="/login" />
+          )
+        }
+      />
+    </Routes>
+
+  );
+}
+
+export default App;
+
+To implement session management and ensure that the user is redirected to their desired page after successful login, as well as staying on the same page after a refresh, 
