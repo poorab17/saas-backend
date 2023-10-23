@@ -12,7 +12,8 @@ const bcrypt = require('bcrypt');
 // Create a new tenant
 exports.createTenant = async (req, res) => {
     try {
-        const { name, username, role, description, databaseName, permissions, password } = req.body;
+        const { name, username, role, description, permissions, password } = req.body;
+        const databaseName = name;
         const dbUri = `mongodb://127.0.0.1:27017/${databaseName}`;
 
         // Hash the password using bcrypt

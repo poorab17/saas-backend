@@ -1,8 +1,21 @@
 const mongoose = require('mongoose');
+
 const permissionSchema = new mongoose.Schema({
-    moduleId: [mongoose.Schema.Types.ObjectId],
-    tenantId: mongoose.Schema.Types.ObjectId,
-    permissions: [String],
+    tenantName: {
+        type: String,
+        required: true,
+    },
+    moduleName: {
+        type: [String],
+        required: true,
+    },
+    rbac: {
+        type: [String],
+        enum: ['view', 'edit', 'delete'],
+        required: true,
+    },
 });
+
 const Permission = mongoose.model('Permission', permissionSchema);
+
 module.exports = Permission;

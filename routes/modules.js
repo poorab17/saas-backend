@@ -16,9 +16,17 @@ router.delete('/delete/:moduleId', checkRole(['superadmin']), modulesController.
 // Get all modules
 router.get('/', modulesController.getAllModules);
 
-// Add more routes for updating, deleting, and other module-related operations as needed.
-router.get('/:moduleName', checkRole(['superadmin']), modulesController.getModuleByName);
+//Add more routes for updating, deleting, and other module-related operations as needed.
+router.get('/:moduleId', checkRole(['superadmin']), modulesController.getModuleById);
 
+
+
+//  route to update module
+router.put(
+    "/edit/:moduleId",
+    checkRole(["superadmin"]),
+    modulesController.updateModule
+);
 
 //permission
 router.post('/permission', checkRole(['superadmin']), permissionController.grantPermission);
