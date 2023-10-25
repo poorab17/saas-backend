@@ -59,6 +59,25 @@ exports.createTenant = async (req, res) => {
     }
 };
 
+//updates
+exports.updateTenant = async (req, res) => {
+    try {
+        const tenantId = req.params.tenantId;
+        const updateData = req.body; // Data to update the tenant
+        // Use the tenant's ID to find and update it in the database
+        const updatedTenant = await Tenant.findByIdAndUpdate(tenantId, updateData, { new: true });
+        if (!updatedTenant) {
+            return res.status(404).json({ message: 'Tenant not found' });
+        }
+        return res.status(200).json(updatedTenant);
+    } catch (error) {
+        console.error('Error updating tenant:', error);
+        res.status(500).json({ message: 'Internal server error.' });
+    }
+};
+
+
+
 
 exports.deleteTenant = async (req, res) => {
     try {
@@ -77,15 +96,6 @@ exports.deleteTenant = async (req, res) => {
 };
 
 
-
-
-
-
-
-
-
-
-
 //for superadmin
 exports.getAllTenants = async (req, res) => {
     try {
@@ -96,11 +106,12 @@ exports.getAllTenants = async (req, res) => {
         res.status(500).json({ message: 'Internal server error.' });
     }
 };
-
-exports.getTenantData = async (req, res) => {
+//get by name
+exports.getTenantDataByName = async (req, res) => {
     try {
         // Obtain the username from the JWT token
-        const token = req.cookies.jwtToken; // Assuming the JWT token is stored in a cookie
+        // const token = req.cookies.jwtToken; // Assuming the JWT token is stored in a cookie
+        const token = req.headers.authorization.replace('Bearer ', '');
 
         if (!token) {
             return res.status(401).json({ message: 'JWT token is missing.' });
@@ -127,8 +138,12 @@ exports.getTenantData = async (req, res) => {
         tenantConnection.on('connected', async () => {
             console.log('Connected to tenant database');
 
-            // Access tenant-specific data from their database
-            const tenantSpecificData = await tenantConnection.collection('tenants').find().toArray();
+            // Access tenant-specific data from their database using the username
+            const tenantSpecificData = await tenantConnection.collection('tenants').findOne({ username });
+
+            if (!tenantSpecificData) {
+                return res.status(404).json({ message: 'Data for the specified user not found.' });
+            }
 
             // Respond with the tenant-specific data
             res.status(200).json({ tenantSpecificData });
@@ -139,6 +154,26 @@ exports.getTenantData = async (req, res) => {
             console.error('Error creating tenant DB connection:', err);
             res.status(500).json({ message: 'Error creating tenant database connection' });
         });
+    } catch (error) {
+        console.error('Error fetching tenant data:', error);
+        res.status(500).json({ message: 'Internal server error.' });
+    }
+};
+
+
+
+//getbyid
+exports.getTenantData = async (req, res) => {
+    try {
+
+
+        const tenantId = req.params.tenantId;
+        const tenant = await Tenant.findById(tenantId);
+        if (!tenant) {
+            return res.status(404).json({ message: 'Tenant not found.' });
+        }
+
+        res.json(tenant);
     } catch (error) {
         console.error('Error fetching tenant data:', error);
         res.status(500).json({ message: 'Internal server error.' });

@@ -29,7 +29,11 @@ router.put(
 );
 
 //permission
-router.post('/permission', checkRole(['superadmin']), permissionController.grantPermission);
+router.post('/permission/create', checkRole(['superadmin']), permissionController.grantPermission);
+module.exports = router;
+
+//get permision detail
+router.get('/permission/details', checkRole(['superadmin']), permissionController.permissonDetail);
 module.exports = router;
 
 

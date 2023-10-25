@@ -45,3 +45,35 @@ exports.grantPermission = async (req, res) => {
     }
 };
 
+
+
+
+// Function to get all details (tenant names, module names, and permissions)
+exports.permissonDetail = async (req, res) => {
+    try {
+        // Retrieve all unique tenant names
+        const uniqueTenants = await Permission.distinct('tenantName');
+
+        // Retrieve all unique module names
+        const uniqueModules = await Permission.distinct('moduleName');
+
+        const uniqueRbac = await Permission.distinct('rbac');
+
+        // Retrieve all permissions
+        const permissions = await Permission.find();
+
+        // Construct the response object
+        const details = {
+            tenants: uniqueTenants,
+            modules: uniqueModules,
+            rbac: uniqueRbac,
+            permissions
+        };
+
+        res.status(200).json(details);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error fetching details.' });
+    }
+};
+
